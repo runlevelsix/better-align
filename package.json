@@ -2,7 +2,7 @@
     "name": "better-align",
     "displayName": "Better Align",
     "description": "Align code without selecting them first.",
-    "version": "1.1.7",
+    "version": "1.1.8",
     "icon": "images/icon.png",
     "repository": "https://github.com/xandeer/better-align",
     "publisher": "xandeer",
@@ -21,6 +21,14 @@
             {
                 "command": "xandeer.aligncode",
                 "title": "Better Align"
+            }
+        ],
+        "keybindings": [
+            {
+                "command": "xandeer.aligncode",
+                "key": "ctrl+s",
+                "mac": "cmd+s",
+                "when": "editorTextFocus"
             }
         ],
         "configuration": {
@@ -56,7 +64,7 @@
                             1,
                             1
                         ],
-                        "arrow":[
+                        "arrow": [
                             1,
                             1
                         ],
@@ -79,9 +87,18 @@
         "configurationDefaults": {
             "[shellscript]": {
                 "alignment.surroundSpace": {
-                    "colon": [ 0, 1 ],
-                    "assignment": [ -1, -1 ],
-                    "arrow":[ 1, 1 ],
+                    "colon": [
+                        0,
+                        1
+                    ],
+                    "assignment": [
+                        -1,
+                        -1
+                    ],
+                    "arrow": [
+                        1,
+                        1
+                    ],
                     "comment": 2
                 }
             }

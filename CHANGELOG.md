@@ -1,3 +1,12 @@
+1.1.8
+=====
+- Add default key bind on `cmd+s` or `ctrl+s`.
+
+1.1.7
+=====
+- Take effect on whole file.
+- Add auto save configuration.
+
 1.1.6
 =====
 - Enhance the logic of finding which op to be aligned.
