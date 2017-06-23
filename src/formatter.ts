@@ -5,9 +5,9 @@ enum TokenType {
   , Word
   , Assignment      // = += -= *= /=
   , Arrow           // =>
-  , Block           // {} [] ()
-  , PartialBlock    // { [ (
-  , EndOfBlock      // } ] )
+  , Block           // {} [] () <>
+  , PartialBlock    // { [ ( <
+  , EndOfBlock      // } ] ) >
   , String
   , PartialString
   , Comment
@@ -40,6 +40,7 @@ const BRACKET_PAIR = {
     "{" : "}"
   , "[" : "]"
   , "(" : ")"
+  , "<" : ">"
 };
 
 function whitespace( count ) {
@@ -59,40 +60,33 @@ export default class Formatter {
 
     var ranges : LineRange[] = [];
 
-    editor.selections.forEach( (sel)=> {
+    const indentBase = this.getConfig().get("indentBase", "firstline") as string;
+    const importantIndent:boolean = indentBase == "dontchange";
 
-      const indentBase = this.getConfig().get("indentBase", "firstline") as string;
-      const importantIndent:boolean = indentBase == "dontchange";
+    let res:LineRange;
 
-      let res:LineRange;
-      if ( sel.isSingleLine ) {
-        // If this selection is single line. Look up and down to search for the similar neighbour
-        ranges.push( this.narrow(0, editor.document.lineCount-1, sel.active.line, importantIndent) );
-      } else {
-        // Otherwise, narrow down the range where to align
-        let start = sel.start.line;
-        let end   = sel.end.line;
+    let start = 1;
+    let end = editor.document.lineCount - 1;
 
-        while ( true ) {
-          res = this.narrow(start, end, start, importantIndent);
-          let lastLine = res.infos[res.infos.length - 1];
+    while ( true ) {
+      res = this.narrow(start, end, start, importantIndent);
+      let lastLine = res.infos[res.infos.length - 1];
+      console.log(lastLine.line.lineNumber);
 
-          if ( lastLine.line.lineNumber > end ) {
-            break;
-          }
-
-          if ( res.infos[0] && res.infos[0].sgfntTokenType != TokenType.Invalid ) {
-            ranges.push( res );
-          }
-
-          if ( lastLine.line.lineNumber == end ) {
-            break;
-          }
-
-          start = lastLine.line.lineNumber + 1;
-        }
+      if ( lastLine.line.lineNumber > end ) {
+        break;
       }
-    });
+
+      if ( res.infos[0] && res.infos[0].sgfntTokenType != TokenType.Invalid ) {
+        ranges.push( res );
+      }
+
+      if ( lastLine.line.lineNumber == end ) {
+        break;
+      }
+
+      start = lastLine.line.lineNumber + 1;
+    }
 
     // Format
     let formatted:string[][] = [];
@@ -123,6 +117,8 @@ export default class Formatter {
         editBuilder.replace(location, formatted[i].join("\n"));
       }
     });
+
+    this.getConfig().get("autoSave") && editor.document.save();
   }
 
   protected editor:vscode.TextEditor;
@@ -168,6 +164,7 @@ export default class Formatter {
 
       let char = text.charAt(pos);
       let next = text.charAt(pos+1);
+      let next1 = text.charAt(pos+2);
 
       let currTokenType:TokenType;
 
@@ -178,9 +175,9 @@ export default class Formatter {
         currTokenType = TokenType.Whitespace;
       } else if ( char == "\"" || char == "'" || char == "`" ) {
         currTokenType = TokenType.String;
-      } else if ( char == "{" || char == "(" || char == "[" ) {
+      } else if ( char == "{" || char == "(" || char == "["  || char == "<") {
         currTokenType = TokenType.Block;
-      } else if ( char == "}" || char == ")" || char == "]" ) {
+      } else if ( char == "}" || char == ")" || char == "]" || char == ">" ) {
         currTokenType = TokenType.EndOfBlock;
       } else if ( char == "/" && (
           (next == "/" && (pos > 0 ? text.charAt(pos-1) : "") != ":") // only `//` but not `://`
@@ -195,10 +192,16 @@ export default class Formatter {
         } else {
           currTokenType = TokenType.Comma;
         }
+      } else if (( char == "!" || char == "=" ) && next == "=" && next1 == "=") { // !== | ===
+        currTokenType = TokenType.Word;
+        nextSeek = 3;
+      } else if (( char == "!" || char == "=" ) && next == "=") { // != | ==
+        currTokenType = TokenType.Word;
+        nextSeek = 2;
       } else if ( char == "=" && next == ">" ) {
         currTokenType = TokenType.Arrow;
         nextSeek = 2;
-      } else if ( char == "=" && next != "=" ) {
+      } else if ( char == "=" ) {
         currTokenType = TokenType.Assignment;
       } else if (( char == "+" || char == "-" || char == "*" || char == "/" ) && next == "=" ) {
         currTokenType = TokenType.Assignment;
