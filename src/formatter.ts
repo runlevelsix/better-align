@@ -19,59 +19,82 @@ enum TokenType {
 }
 
 interface Token {
-  type : TokenType;
-  text : string;
+  type: TokenType;
+  text: string;
 }
 
 interface LineInfo {
-  line           : vscode.TextLine;
-  sgfntTokenType : TokenType;
-  sgfntTokens    : TokenType[];
-  tokens         : Token[];
+  line          : vscode.TextLine;
+  sgfntTokenType: TokenType;
+  sgfntTokens   : TokenType[];
+  tokens        : Token[];
 }
 
 interface LineRange {
-  anchor : number;
-  infos  : LineInfo[];
+  anchor: number;
+  infos : LineInfo[];
 }
 
-const REG_WS = /\s/;
+const REG_WS       = /\s/;
 const BRACKET_PAIR = {
-    "{" : "}"
-  , "[" : "]"
-  , "(" : ")"
-  , "<" : ">"
+                                                    "{": "}"
+                                                  , "[": "]"
+                                                  , "(": ")"
+                                                  , "<": ">"
 };
 
 function whitespace( count ) {
   return new Array(count+1).join(" ");
 }
 
+/**
+ * Returns the file extension part or an empty string 
+ * if there is none.
+ */
+export function getFileExtension(filename: string): string {
+  if (!filename)
+    return;
+  let ext = '', temp = '';
+  for (let i = filename.length - 1; i >= 0; --i) {
+    let char = filename[i];
+    if (char === '.') {
+      ext = temp;  // avoid filename without extension
+      break;
+    }
+    temp = char + temp;
+  }
+  return ext;
+}
+
 export default class Formatter {
 
   /* Align:
-   *   operators = += -= *= /= :
+   * operators =  +=  -=  *=  /= :
    *   trailling comment
    *   preceding comma
    * Ignore anything inside a quote, comment, or block
    */
   public process( editor:vscode.TextEditor ):void {
+    const ext = getFileExtension(editor.document.fileName)
+    if (!this.isFileEligible(ext)) {
+      return;
+    }
     this.editor = editor;
 
     var ranges : LineRange[] = [];
 
-    const indentBase = this.getConfig().get("indentBase", "firstline") as string;
+    const indentBase              = this.getConfig().get("indentBase", "firstline") as string;
     const importantIndent:boolean = indentBase == "dontchange";
 
-    let res:LineRange;
+    let res: LineRange;
 
     let start = 1;
-    let end = editor.document.lineCount - 1;
+    let end   = editor.document.lineCount - 1;
 
     while ( true ) {
       res = this.narrow(start, end, start, importantIndent);
+
       let lastLine = res.infos[res.infos.length - 1];
-      console.log(lastLine.line.lineNumber);
 
       if ( lastLine.line.lineNumber > end ) {
         break;
@@ -117,15 +140,26 @@ export default class Formatter {
         editBuilder.replace(location, formatted[i].join("\n"));
       }
     });
-
-    this.getConfig().get("autoSave") && editor.document.save();
   }
 
-  protected editor:vscode.TextEditor;
+  /**
+   * Returns true if the file extension can be used (i.e. is not
+   * excluded by user)
+   * @param ext The file extension (without dot).
+   */
+  private isFileEligible(ext: string): boolean {
+    const inclusion = this.getConfig().get('include') as string[]
+    const exclusion = this.getConfig().get('exclude') as string[]
+    if(inclusion.length > 0)
+      return inclusion.indexOf(ext) != -1;
+    return exclusion.indexOf(ext) == -1;
+  }
 
-  protected getConfig() {
+  protected editor: vscode.TextEditor;
 
-    let defaultConfig = vscode.workspace.getConfiguration("alignment");
+  public getConfig() {
+
+    let defaultConfig     = vscode.workspace.getConfiguration("alignment");
     let langConfig:Object = null;
 
     try {
@@ -147,14 +181,14 @@ export default class Formatter {
   }
 
   protected tokenize( line:number ):LineInfo {
-    let textline = this.editor.document.lineAt( line );
-    let text = textline.text;
-    let pos  = 0;
+    let textline    = this.editor.document.lineAt( line );
+    let text        = textline.text;
+    let pos         = 0;
     let lt:LineInfo = {
-        line           : textline
-      , sgfntTokenType : TokenType.Invalid
-      , sgfntTokens    : []
-      , tokens         : []
+                                                        line          : textline
+                                                      , sgfntTokenType: TokenType.Invalid
+                                                      , sgfntTokens   : []
+                                                      , tokens        : []
     };
 
     let lastTokenType = TokenType.Invalid;
@@ -162,11 +196,11 @@ export default class Formatter {
 
     while ( pos < text.length ) {
 
-      let char = text.charAt(pos);
-      let next = text.charAt(pos+1);
+      let char  = text.charAt(pos);
+      let next  = text.charAt(pos+1);
       let next1 = text.charAt(pos+2);
 
-      let currTokenType:TokenType;
+      let currTokenType: TokenType;
 
       let nextSeek = 1;
 
@@ -188,24 +222,24 @@ export default class Formatter {
         currTokenType = TokenType.Colon;
       } else if ( char == "," ) {
         if ( lt.tokens.length == 0 || (lt.tokens.length == 1 && lt.tokens[0].type == TokenType.Whitespace) ) {
-          currTokenType = TokenType.CommaAsWord; // Comma-first style
+          currTokenType = TokenType.CommaAsWord;  // Comma-first style
         } else {
           currTokenType = TokenType.Comma;
         }
       } else if (( char == "!" || char == "=" ) && next == "=" && next1 == "=") { // !== | ===
         currTokenType = TokenType.Word;
-        nextSeek = 3;
+        nextSeek      = 3;
       } else if (( char == "!" || char == "=" ) && next == "=") { // != | ==
         currTokenType = TokenType.Word;
-        nextSeek = 2;
+        nextSeek      = 2;
       } else if ( char == "=" && next == ">" ) {
         currTokenType = TokenType.Arrow;
-        nextSeek = 2;
+        nextSeek      = 2;
       } else if ( char == "=" ) {
         currTokenType = TokenType.Assignment;
       } else if (( char == "+" || char == "-" || char == "*" || char == "/" ) && next == "=" ) {
         currTokenType = TokenType.Assignment;
-        nextSeek = 2;
+        nextSeek      = 2;
       } else {
         currTokenType = TokenType.Word;
       }
@@ -213,8 +247,8 @@ export default class Formatter {
       if ( currTokenType != lastTokenType ) {
         if ( tokenStartPos != -1 ) {
           lt.tokens.push({
-              type : lastTokenType
-            , text : textline.text.substr(tokenStartPos, pos - tokenStartPos)
+                                                              type: lastTokenType
+                                                            , text: textline.text.substr(tokenStartPos, pos - tokenStartPos)
           });
         }
 
@@ -290,8 +324,8 @@ export default class Formatter {
 
     if ( tokenStartPos != -1 ) {
       lt.tokens.push({
-          type : lastTokenType
-        , text : textline.text.substr(tokenStartPos, pos-tokenStartPos)
+                                                          type: lastTokenType
+                                                        , text: textline.text.substr(tokenStartPos, pos-tokenStartPos)
       });
     }
 
@@ -329,7 +363,7 @@ export default class Formatter {
 
   protected arrayAnd( array1:TokenType[], array2:TokenType[] ):TokenType[] {
     var res:TokenType[] = []
-    var map = {}
+    var map             = {}
     for ( var i = 0; i < array1.length; ++i ) {
       map[array1[i]] = true;
     }
@@ -351,7 +385,7 @@ export default class Formatter {
     */
   protected narrow( start:number, end:number, anchor:number, importantIndent:boolean ):LineRange {
     let anchorToken = this.tokenize( anchor );
-    let range = { anchor, infos:[ anchorToken ] };
+    let range       = { anchor, infos:[ anchorToken ] };
 
     let tokenTypes = anchorToken.sgfntTokens;
 
@@ -524,11 +558,11 @@ export default class Formatter {
     }
 
     // 3. Align
-    const configOP  = config.get("operatorPadding") as string;
-    const configWS  = config.get("surroundSpace");
-    const stt       = TokenType[range.infos[0].sgfntTokenType].toLowerCase();
-    const configDef = { "colon": [0, 1], "assignment": [1, 1], "comment": 2, "arrow" : [1, 1] };
-    const configSTT = configWS[stt] || configDef[stt];
+    const configOP      = config.get("operatorPadding") as string;
+    const configWS      = config.get("surroundSpace");
+    const stt           = TokenType[range.infos[0].sgfntTokenType].toLowerCase();
+    const configDef     = { "colon": [0, 1], "assignment": [1, 1], "comment": 2, "arrow" : [1, 1] };
+    const configSTT     = configWS[stt] || configDef[stt];
     const configComment = configWS["comment"] || configDef["comment"];
 
     const rangeSize = range.infos.length;
@@ -540,9 +574,9 @@ export default class Formatter {
     let result = new Array<string>( rangeSize );
     result.fill(indentation);
 
-    let exceed = 0; // Tracks how many line have reached to the end.
+    let exceed             = 0;      // Tracks how many line have reached to the end.
     let hasTrallingComment = false;
-    let resultSize = 0;
+    let resultSize         = 0;
 
     while ( exceed < rangeSize ) {
 
@@ -550,8 +584,8 @@ export default class Formatter {
 
       // First pass: for each line, scan until we reach to the next operator
       for ( let l = 0; l < rangeSize; ++l ) {
-        let i = column[l];
-        let info = range.infos[l];
+        let i         = column[l];
+        let info      = range.infos[l];
         let tokenSize = info.tokens.length;
 
         if ( i == -1 ) { continue; }
@@ -580,7 +614,7 @@ export default class Formatter {
           }
         }
 
-        result[l]  = res;
+        result[l] = res;
         if ( i < end ) {
           resultSize = Math.max(resultSize, res.length);
         }
@@ -619,7 +653,7 @@ export default class Formatter {
         if ( info.tokens[i].type == TokenType.Comma ) {
           res += op;
           if ( i < info.tokens.length - 1 ) {
-            res += padding + " "; // Ensure there's one space after comma.
+            res += padding + " ";  // Ensure there's one space after comma.
           }
         } else {
           if (configSTT[0] < 0) {
@@ -673,8 +707,8 @@ export default class Formatter {
       for ( let l = 0; l < rangeSize; ++l ) {
         let info = range.infos[l];
         if ( info.tokens.length ) {
-          let res = result[l];
-          result[l] = res + whitespace(resultSize-res.length+configComment) + info.tokens.pop().text;
+          let    res = result[l];
+          result[l]  = res + whitespace(resultSize-res.length+configComment) + info.tokens.pop().text;
         }
       }
     }

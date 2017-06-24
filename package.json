@@ -2,18 +2,18 @@
     "name": "better-align",
     "displayName": "Better Align",
     "description": "Align code without selecting them first.",
-    "version": "1.1.8",
+    "version": "1.1.9",
     "icon": "images/icon.png",
     "repository": "https://github.com/xandeer/better-align",
     "publisher": "xandeer",
     "engines": {
-        "vscode": "^1.5.0"
+        "vscode": "^1.10.0"
     },
     "categories": [
         "Formatters"
     ],
     "activationEvents": [
-        "onCommand:xandeer.aligncode"
+        "*"
     ],
     "main": "./out/src/extension",
     "contributes": {
@@ -26,8 +26,8 @@
         "keybindings": [
             {
                 "command": "xandeer.aligncode",
-                "key": "ctrl+s",
-                "mac": "cmd+s",
+                "key": "ctrl-shift-a",
+                "mac": "cmd-shift-a",
                 "when": "editorTextFocus"
             }
         ],
@@ -35,14 +35,31 @@
             "type": "object",
             "title": "Alignment configuration",
             "properties": {
-                "alignment.autoSave": {
+                "alignment.include": {
+                    "type": "array",
+                    "default": [
+                        "json",
+                        "js",
+                        "ts",
+                        "vue",
+                        "css",
+                        "scss"
+                    ],
+                    "description": "Only include files you need, DO NOT USE `**/*.*` for both permormance and avoiding binary files reason"
+                },
+                "alignment.exclude": {
+                    "type": "array",
+                    "default": [],
+                    "description": "A glob pattern that defines files to exclude while listing annotations"
+                },
+                "alignment.beforeSave": {
                     "type": "Boolean",
                     "enum": [
                         true,
                         false
                     ],
                     "default": true,
-                    "description": "Auto save after align."
+                    "description": "Align before save."
                 },
                 "alignment.operatorPadding": {
                     "type": "string",
@@ -112,7 +129,7 @@
     },
     "devDependencies": {
         "typescript": "^2.0.3",
-        "vscode": "^1.0.0",
+        "vscode": "^1.1.0",
         "mocha": "^2.3.3",
         "@types/node": "^6.0.40",
         "@types/mocha": "^2.2.32"
