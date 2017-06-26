@@ -37,10 +37,10 @@ interface LineRange {
 
 const REG_WS       = /\s/;
 const BRACKET_PAIR = {
-                                                    "{": "}"
-                                                  , "[": "]"
-                                                  , "(": ")"
-                                                  , "<": ">"
+                                                        "{": "}"
+                                                      , "[": "]"
+                                                      , "(": ")"
+                                                      , "<": ">"
 };
 
 function whitespace( count ) {
@@ -185,10 +185,10 @@ export default class Formatter {
     let text        = textline.text;
     let pos         = 0;
     let lt:LineInfo = {
-                                                        line          : textline
-                                                      , sgfntTokenType: TokenType.Invalid
-                                                      , sgfntTokens   : []
-                                                      , tokens        : []
+          line          : textline
+        , sgfntTokenType: TokenType.Invalid
+        , sgfntTokens   : []
+        , tokens        : []
     };
 
     let lastTokenType = TokenType.Invalid;
@@ -218,7 +218,7 @@ export default class Formatter {
         || next == "*"
       ) ) {
         currTokenType = TokenType.Comment;
-      } else if ( char == ":" && next != ":" ) {
+      } else if ( char == ":" && next != ":" && (pos > 0 ? text.charAt(pos-1) : "") != "&" ) { // `&:` for css/sass
         currTokenType = TokenType.Colon;
       } else if ( char == "," ) {
         if ( lt.tokens.length == 0 || (lt.tokens.length == 1 && lt.tokens[0].type == TokenType.Whitespace) ) {
@@ -247,8 +247,8 @@ export default class Formatter {
       if ( currTokenType != lastTokenType ) {
         if ( tokenStartPos != -1 ) {
           lt.tokens.push({
-                                                              type: lastTokenType
-                                                            , text: textline.text.substr(tokenStartPos, pos - tokenStartPos)
+                                                                  type: lastTokenType
+                                                                , text: textline.text.substr(tokenStartPos, pos - tokenStartPos)
           });
         }
 
@@ -324,8 +324,8 @@ export default class Formatter {
 
     if ( tokenStartPos != -1 ) {
       lt.tokens.push({
-                                                          type: lastTokenType
-                                                        , text: textline.text.substr(tokenStartPos, pos-tokenStartPos)
+                                                              type: lastTokenType
+                                                            , text: textline.text.substr(tokenStartPos, pos-tokenStartPos)
       });
     }
 

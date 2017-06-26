@@ -1,3 +1,7 @@
+1.1.10
+====
+- Don't align `&:`, it's commonly used in `css`/`sass`.
+
 1.1.9
 ==== 
 - Replace key bind with `cmd+shift+a` or `ctrl+shift+a`.
@@ -42,10 +46,10 @@
 
 ```
 // Before
-export fdafas   = fdasfas;
-export fs       = fasfdsfadsa;
-export fadsfasf = fadsjfkdasf;
-export fadsfa   = fadfdasfadsf;
+export fdafas=fdasfas;
+export fs=fasfdsfadsa;
+export fadsfasf=fadsjfkdasf;
+export fadsfa=fadfdasfadsf;
 
 // After
 export fdafas   = fdasfas;
